@@ -17,6 +17,8 @@ scala.slick.driver.FreeSQLServerDriver
 The artefact (currently only snapshot) is published as:
 
 ```scala
+resolvers += Resolver.sonatypeRepo("snapshots")
+
 "com.github.fommil" %% "freeslick" % "2.0.3-SNAPSHOT"
 ```
 
