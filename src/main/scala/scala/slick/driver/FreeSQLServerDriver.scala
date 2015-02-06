@@ -2,11 +2,11 @@ package scala.slick.driver
 
 import scala.slick.lifted._
 import scala.slick.ast._
-import scala.slick.jdbc.PositionedResult
+import scala.slick.jdbc.JdbcType
 import scala.slick.util.MacroSupport.macroSupportInterpolation
 import scala.slick.profile.{ SqlProfile, Capability }
 import scala.slick.compiler.{ Phase, QueryCompiler, CompilerState }
-import java.sql.{ Timestamp, Date, Time }
+import java.sql.{ ResultSet, Timestamp, Date, Time }
 
 /**
  * Slick driver for Microsoft SQL Server.
@@ -34,7 +34,10 @@ trait FreeSQLServerDriver extends JdbcDriver { driver =>
     - SqlProfile.capabilities.sequence
   )
 
-  override val compiler = QueryCompiler.relational + Phase.rewriteBooleans
+  override protected def computeQueryCompiler: QueryCompiler = (super.computeQueryCompiler
+    + Phase.rewriteBooleans
+  )
+
   override val columnTypes = new JdbcTypes
   override def createQueryBuilder(n: Node, state: CompilerState): QueryBuilder = new QueryBuilder(n, state)
   override def createColumnDDLBuilder(column: FieldSymbol, table: Table[_]): ColumnDDLBuilder = new ColumnDDLBuilder(column)
@@ -54,9 +57,9 @@ trait FreeSQLServerDriver extends JdbcDriver { driver =>
 
     override protected def buildSelectModifiers(c: Comprehension) {
       (c.fetch, c.offset) match {
-        case (Some(t), Some(d)) => b"top ${d + t} "
+        case (Some(t), Some(d)) => b"top ${QueryParameter.constOp[Long]("+")(_ + _)(t, d)} "
         case (Some(t), None) => b"top $t "
-        case (None, _) => if (!c.orderBy.isEmpty) b"top 100 percent "
+        case (None, _) => if (c.orderBy.nonEmpty) b"top 100 percent "
       }
     }
 
@@ -71,11 +74,11 @@ trait FreeSQLServerDriver extends JdbcDriver { driver =>
 
     override def expr(n: Node, skipParens: Boolean = false): Unit = n match {
       // Cast bind variables of type TIME to TIME (otherwise they're treated as TIMESTAMP)
-      case c @ LiteralNode(v) if c.volatileHint && typeInfoFor(c.tpe) == columnTypes.timeJdbcType =>
+      case c @ LiteralNode(v) if c.volatileHint && jdbcTypeFor(c.tpe) == columnTypes.timeJdbcType =>
         b"cast("
         super.expr(n, skipParens)
         b" as ${columnTypes.timeJdbcType.sqlTypeName})"
-      case QueryParameter(extractor, tpe) if typeInfoFor(tpe) == columnTypes.timeJdbcType =>
+      case QueryParameter(extractor, tpe) if jdbcTypeFor(tpe) == columnTypes.timeJdbcType =>
         b"cast("
         super.expr(n, skipParens)
         b" as ${columnTypes.timeJdbcType.sqlTypeName})"
@@ -115,8 +118,8 @@ trait FreeSQLServerDriver extends JdbcDriver { driver =>
     }
     class TimeJdbcType extends super.TimeJdbcType {
       override def valueToSQLLiteral(value: Time) = "(convert(time, {t '" + value + "'}))"
-      override def nextValue(r: PositionedResult) = {
-        val s = r.nextString()
+      override def getValue(r: ResultSet, idx: Int) = {
+        val s = r.getString(idx)
         val sep = s.indexOf('.')
         if (sep == -1) Time.valueOf(s)
         else {
@@ -140,7 +143,7 @@ trait FreeSQLServerDriver extends JdbcDriver { driver =>
       override def sqlTypeName = "SMALLINT"
       //def setValue(v: Byte, p: PositionedParameters) = p.setByte(v)
       //def setOption(v: Option[Byte], p: PositionedParameters) = p.setByteOption(v)
-      override def nextValue(r: PositionedResult) = r.nextShort.toByte
+      override def getValue(r: ResultSet, idx: Int) = r.getShort(idx).toByte
       //def updateValue(v: Byte, r: PositionedResult) = r.updateByte(v)
     }
   }

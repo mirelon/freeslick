@@ -8,30 +8,30 @@ organization := "com.github.fommil"
 
 name := "freeslick"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.5"
 
-version := "2.0.3-SNAPSHOT"
+version := "2.1.0-SNAPSHOT"
 
 //resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.slick"         %% "slick"                % "2.0.3",
-  "org.scalatest"              %% "scalatest"            % "2.2.3" % "test",
+  "com.typesafe.slick"         %% "slick"                % "2.1.0",
+  "org.scalatest"              %% "scalatest"            % "2.2.4" % "test",
   "org.scalamock"              %% "scalamock-scalatest-support" % "3.2.1" % "test",
   "org.scalacheck"             %% "scalacheck"           % "1.12.1" % "test"
 )
 
 scalacOptions in Compile ++= Seq(
-  "-encoding", "UTF-8", "-target:jvm-1.6", "-feature", "-deprecation",
+  "-encoding", "UTF-8", "-target:jvm-1.7", "-feature", "-deprecation",
   "-Xfatal-warnings",
   "-language:postfixOps", "-language:implicitConversions"
 )
 
 javacOptions in (Compile, compile) ++= Seq (
-  "-source", "1.6", "-target", "1.6", "-Xlint:all", "-Werror"
+  "-source", "1.7", "-target", "1.7", "-Xlint:all", "-Werror"
 )
 
-javacOptions in doc ++= Seq("-source", "1.6")
+javacOptions in doc ++= Seq("-source", "1.7")
 
 maxErrors := 1
 
